@@ -1,0 +1,14 @@
+{
+  "name": "soulfull-kitchen-static",
+  "private": true,
+  "scripts": {
+    "dev": "live-server --port=3000 --no-browser .",
+    "serve": "serve -s -l 3000 .",
+    "format": "prettier --write \"**/*.{html,css,js,json}\""
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.3",
+    "prettier": "^3.3.3"
+  }
+}
