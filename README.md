@@ -1,2 +1,2 @@
-# SoulfullKitchensite
-NFT/Order placing website.
+# SoulfullKitchen
+Soulfull Chef NFT/Order placing website.
