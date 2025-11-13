@@ -199,12 +199,12 @@
   <script>
     // ===== Minimal data (swap with your real images and items) =====
     const MENU = [
-      { id: 'mac', name: 'Mac & Cheese', price: 12, img: 'assets/menu_mac.jpg' },
-      { id: 'wings', name: 'Honey Hot Wings', price: 14, img: 'assets/menu_wings.jpg' },
-      { id: 'ribs', name: 'BBQ Ribs', price: 18, img: 'assets/menu_ribs.jpg' },
-      { id: 'collards', name: 'Collard Greens', price: 8, img: 'assets/menu_collards.jpg' },
-      { id: 'yams', name: 'Candied Yams', price: 9, img: 'assets/menu_yams.jpg' },
-      { id: 'juice', name: 'Soul Juice (12oz)', price: 7, img: 'assets/menu_juice.jpg' },
+      { id: 'mac', name: 'Mac & Cheese', price: 8, img: 'assets/menu_mac.jpg' },
+      { id: 'wings', name: 'NYC Chix/Rice Plate', price: 16, img: 'assets/menu_wings.jpg' },
+      { id: 'ribs', name: 'BBQ', price: 18, img: 'assets/menu_ribs.jpg' },
+      { id: 'collards', name: 'Collard Greens', price: 5, img: 'assets/menu_collards.jpg' },
+      { id: 'yams', name: 'Candied Yams', price: 8, img: 'assets/menu_yams.jpg' },
+      { id: 'juice', name: 'Seamoss Fruit Juice (12oz)', price: 7, img: 'assets/menu_juice.jpg' },
     ];
 
     const NFTS = [
@@ -327,7 +327,7 @@
       console.log(summary);
       modal.style.display='none';
       // Optional: open email draft to your store
-      const mailto = `mailto:hello@soulfullkitchen.xyz?subject=${encodeURIComponent('New Pickup Order')}&body=${encodeURIComponent(summary)}`;
+      const mailto = `mailto:soulfullkitchen@proton.me?subject=${encodeURIComponent('New Pickup Order')}&body=${encodeURIComponent(summary)}`;
       window.location.href = mailto;
     };
 
