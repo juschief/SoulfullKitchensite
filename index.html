@@ -68,6 +68,7 @@
     .card__body { padding: 12px 14px 14px; display:grid; gap:8px; }
     .card__title { font-weight: 700; }
     .card__meta { display:flex; justify-content: space-between; align-items:center; color: #3c3b39; font-weight: 600; }
+    .card__text { margin: 0; font-size: 14px; color: rgba(28,27,25,.8); }
 
     .qty { display:flex; align-items:center; gap: 6px; }
     .qty button { width:28px; height:28px; border-radius: 8px; border:0; background: #f0f6f5; color:#173d36; font-weight:700; cursor:pointer; }
@@ -208,9 +209,18 @@
     ];
 
     const NFTS = [
-      { id: 'chef-1', name: 'Soulfull Chef #1', img: 'assets/chef.png' },
-      { id: 'chef-2', name: 'Soulfull Chef #2', img: 'assets/chef.png' },
-      { id: 'chef-3', name: 'Soulfull Chef #3', img: 'assets/chef.png' },
+      {
+        id: 'chef-1',
+        name: 'Soulfull Chef #1',
+        perk: 'OG collectible, early tastings & merch drops',
+        img: 'assets/chef.png'
+      },
+      {
+        id: 'chef-pass',
+        name: 'Soulfull Kitchen Pass',
+        perk: 'Skip-the-line pickup plus seasonal tasting invite',
+        img: 'assets/nft_soulfull_preview.png'
+      },
     ];
 
     // ===== Utilities =====
@@ -253,6 +263,7 @@
         <img class="card__img" src="${n.img}" alt="${n.name}">
         <div class="card__body">
           <div class="card__meta"><span class="card__title">${n.name}</span><small>perk preview</small></div>
+          <p class="card__text">${n.perk}</p>
           <button class="btn btn--ghost">Details</button>
         </div>`;
       nftGrid.appendChild(card);
