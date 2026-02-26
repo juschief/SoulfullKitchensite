@@ -84,17 +84,40 @@ SoulfullKitchensite/
 ├── index.html             ← landing / static shell
 ├── app/                   ← React + Vite app (when added)
 │   ├── src/
-│   │   ├── components/    ← UI components
-│   │   ├── hooks/         ← Web3 hooks (useWallet, useStake, useNFT)
-│   │   ├── contracts/     ← ABI JSON files
-│   │   ├── pages/         ← route-level views
-│   │   └── styles/        ← global CSS, tokens
+│   │   ├── components/
+│   │   │   ├── AuthModal/       ← wallet + email login modal
+│   │   │   ├── CartPanel/       ← slide-in cart (replaces floating drawer)
+│   │   │   ├── OrderChat/       ← per-order chat window (post-checkout only)
+│   │   │   ├── StakingDash/     ← stake PFP, view rewards
+│   │   │   ├── CultureGallery/  ← NFT art + lore display
+│   │   │   └── Toast/           ← toast notification system
+│   │   ├── hooks/
+│   │   │   ├── useWallet.js     ← connect / disconnect wallet
+│   │   │   ├── useAuth.js       ← unified auth (wallet or email)
+│   │   │   ├── useStake.js      ← stake / unstake / claim rewards
+│   │   │   ├── useNFT.js        ← read NFT balance + metadata
+│   │   │   └── useOrderChat.js  ← open/send/receive order chat
+│   │   ├── contracts/           ← ABI JSON files
+│   │   ├── pages/               ← route-level views
+│   │   └── styles/              ← global CSS, tokens
 │   └── vite.config.js
 ├── contracts/             ← Solidity smart contracts
 │   ├── SoulChefNFT.sol    ← ERC-721A collection
 │   ├── SoulStaking.sol    ← staking + rewards contract
 │   └── SoulToken.sol      ← ERC-20 reward token (if needed)
 └── assets/                ← images, metadata
+```
+
+**Page / Section Layout (single-page app flow):**
+```
+/ (home)
+├── Nav        — logo · Menu · NFTs · Stake · [wallet/email avatar]
+├── Hero       — headline, CTA (Order Now / View Collection)
+├── Menu       — food cards, add to cart → slide-in CartPanel
+│               └── Checkout → Pickup Details modal → confirmation → OrderChat opens
+├── Culture    — NFT gallery (all visitors), art + trait showcase
+├── Staking    — [wallet-gated] stake PFP, rewards dashboard
+└── Footer     — socials, contact
 ```
 
 ---
@@ -104,7 +127,7 @@ SoulfullKitchensite/
 ### Menu & Ordering
 - Static menu array in `index.html` (`MENU` const) — swap `img` paths with real food photos
 - Add-to-cart with localStorage persistence (`sfk_cart_v1`)
-- Quantity controls, cart drawer, subtotal
+- Quantity controls, fixed-bottom cart drawer (⚠️ **being replaced** — see UX decisions below), subtotal
 - Checkout modal collects: name, phone, pickup time, notes
 - Confirms via `mailto:` to `soulfullkitchen@proton.me` — **no backend required**
 - Payment: cash on pickup only (by design)
@@ -119,33 +142,70 @@ SoulfullKitchensite/
 
 ---
 
+## UX Decisions (locked in)
+
+### No floating chat-box cart
+The current cart drawer is a fixed widget pinned to the bottom-right corner — it reads visually like a chat window and breaks the layout energy. **Replace it** with an inline cart experience (slide-in side panel or dedicated cart page/section) that feels intentional, not like an afterthought widget.
+
+### Auth: Wallet OR Email
+Users can sign in / identify themselves two ways:
+- **Connect Wallet** — MetaMask, Coinbase Wallet, Abstract Global Wallet, WalletConnect
+- **Email login** — magic link or password (simple, no-friction for non-crypto users)
+Both flows land on the same user session. Wallet connection unlocks NFT perks. Email is a fallback for food-only customers.
+Auth gate is soft — you can browse and build a cart without logging in, but must authenticate to place an order or enter the staking/rewards area.
+
+### Post-Order Chat (per customer)
+After a customer places an order, a dedicated chat window opens for **that order only**. This is not a persistent floating chat widget on every page. The flow:
+1. Customer places order → confirmation screen
+2. Confirmation screen has a "Chat with us about your order" button
+3. Chat is private, scoped to that order ID / wallet / email session
+4. Kitchen side can coordinate: "Your order is ready", "We're out of yams — want a sub?"
+5. Chat history stored per session; not a general-purpose support widget
+
+### Staking = Culture + Rewards
+Staking is not just financial — it is the gateway to the culture side of the project:
+- Stake a Soulfull Chef PFP → earn $SOUL rewards over time
+- $SOUL redeemable for: order discounts, exclusive menu items, early drops
+- Staking dashboard doubles as a **culture gallery** — staked NFTs are displayed in a
+  stylized "kitchen wall" layout showing the art, traits, and lore of each chef
+- Non-holders can still browse the gallery but cannot stake or claim rewards
+
+---
+
 ## Planned Features (Roadmap)
 
-### Phase 1 — Polish Static Site
+### Phase 1 — Redesign Static Site
+- [ ] Replace fixed cart drawer with a proper slide-in cart panel (not a chat-style widget)
+- [ ] Add auth modal: "Connect Wallet" button + "Continue with Email" option side by side
 - [ ] Add real food photography to `assets/` (menu items)
 - [ ] Add full NFT collection images to `assets/`
-- [ ] Responsive mobile polish (cart, hero)
+- [ ] Responsive mobile polish (cart panel, hero, nav)
 - [ ] Accessibility pass (aria labels, keyboard nav, focus styles)
+- [ ] Remove all `alert()` calls — replace with inline toast notifications
 
-### Phase 2 — Wallet Integration
-- [ ] Wire `#walletBtn` to Abstract Global Wallet or Wagmi
-- [ ] Display connected wallet address (truncated) in nav
-- [ ] Read user's NFT balance from contract
-- [ ] Gate NFT-holder perks (badge on nav, exclusive menu items)
+### Phase 2 — Auth + Wallet Integration
+- [ ] Build auth modal UI (wallet connect + email magic link)
+- [ ] Wire wallet connect to Abstract Global Wallet or Wagmi
+- [ ] Wire email login (magic link via Resend, Supabase Auth, or similar)
+- [ ] Display connected identity in nav (truncated wallet address or email)
+- [ ] Read user's NFT balance from contract once wallet is connected
+- [ ] Gate NFT-holder perks (badge in nav, exclusive menu items, discount label on cart)
 
-### Phase 3 — NFT Staking
-- [ ] Deploy `SoulStaking.sol` — stake Soulfull Chef PFPs, earn $SOUL tokens
-- [ ] Rewards distributed per epoch (daily, weekly — TBD)
-- [ ] Staking dashboard: show staked NFTs, pending rewards, claim button
-- [ ] Un-stake with optional lock period penalty
-- [ ] Design: staked chef gets an animated "cooking" state in the UI
+### Phase 3 — Post-Order Chat
+- [ ] After order confirmation, open a per-order private chat window (not a persistent widget)
+- [ ] Chat scoped to order ID + customer identity (wallet or email session)
+- [ ] Kitchen dashboard to see all active order chats in one place
+- [ ] Real-time updates: order ready, substitutions, pickup confirmation
+- [ ] Tech options: XMTP (wallet-native, encrypted), Pusher, or Socket.io
+- [ ] Chat UI styled on-brand — dark green header, chef avatar on kitchen side
 
-### Phase 4 — Private Customer Chat
-- [ ] Per-customer private chat linked to wallet address (not public)
-- [ ] Use case: real-time order updates, custom order requests
-- [ ] Options: XMTP (Web3 native messaging), Pusher, or Socket.io (simpler)
-- [ ] Chat gated behind wallet connection — anonymous wallets get a generated chef alias
-- [ ] Messages encrypted client-side if using XMTP
+### Phase 4 — NFT Staking + Culture Gallery
+- [ ] Deploy `SoulStaking.sol` — stake Chef PFPs, earn $SOUL tokens per epoch
+- [ ] Staking dashboard shows: staked NFTs (kitchen wall layout), pending rewards, claim button
+- [ ] Staked chef gets an animated "cooking" state overlay in the gallery
+- [ ] $SOUL redeemable at checkout: discounts, exclusive items, early access drops
+- [ ] Culture gallery open to all visitors — staking/rewards gated behind wallet connect
+- [ ] Un-stake with optional lock period (penalty if early exit — TBD)
 
 ---
 
