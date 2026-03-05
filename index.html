@@ -597,21 +597,27 @@
   <!-- ===== Toast stack ===== -->
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
+    // ===== Supabase =====
+    const SUPABASE_URL  = 'https://xqhfpzfcdquxmiivkrlm.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxaGZwemZjZHF1eG1paXZrcmxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDU3MzEsImV4cCI6MjA4ODAyMTczMX0.U5Tv_x9v5MB6AKquDfU2lZ7uJHw-k6sDYT4Is8LFMxQ';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
     // ===== Data =====
     const MENU = [
-      { id: 'mac',      name: 'Mac & Cheese',             price: 8,  img: 'assets/menu_mac.jpg' },
-      { id: 'wings',    name: 'NYC Chix/Rice Plate',       price: 16, img: 'assets/menu_wings.jpg' },
-      { id: 'ribs',     name: 'BBQ',                      price: 18, img: 'assets/menu_ribs.jpg' },
-      { id: 'collards', name: 'Collard Greens',            price: 5,  img: 'assets/menu_collards.jpg' },
-      { id: 'yams',     name: 'Candied Yams',              price: 8,  img: 'assets/menu_yams.jpg' },
-      { id: 'juice',    name: 'Seamoss Fruit Juice (12oz)',price: 7,  img: 'assets/menu_juice.jpg' },
+      { id: 'mac',      name: 'Mac & Cheese',              price: 8,  img: 'assets/menu_mac.jpg' },
+      { id: 'wings',    name: 'NYC Chix/Rice Plate',        price: 16, img: 'assets/menu_wings.jpg' },
+      { id: 'ribs',     name: 'BBQ',                       price: 18, img: 'assets/menu_ribs.jpg' },
+      { id: 'collards', name: 'Collard Greens',             price: 5,  img: 'assets/menu_collards.jpg' },
+      { id: 'yams',     name: 'Candied Yams',               price: 8,  img: 'assets/menu_yams.jpg' },
+      { id: 'juice',    name: 'Seamoss Fruit Juice (12oz)', price: 7,  img: 'assets/menu_juice.jpg' },
     ];
 
     const NFTS = [
-      { id: 'chef-1', name: 'Soulfull Chef #1', img: 'assets/chef.png',                traits: ['Gold Apron', 'Classic Hat', 'OG'] },
+      { id: 'chef-1', name: 'Soulfull Chef #1', img: 'assets/chef.png',                 traits: ['Gold Apron', 'Classic Hat', 'OG'] },
       { id: 'chef-2', name: 'Soulfull Chef #2', img: 'assets/nft_soulfull_preview.png', traits: ['Green Apron', 'Streetwear', 'Rare'] },
-      { id: 'chef-3', name: 'Soulfull Chef #3', img: 'assets/chef.png',                traits: ['Orange Apron', 'Cap', 'Common'] },
+      { id: 'chef-3', name: 'Soulfull Chef #3', img: 'assets/chef.png',                 traits: ['Orange Apron', 'Cap', 'Common'] },
     ];
 
     // ===== Utils =====
@@ -623,8 +629,27 @@
       el.className = 'toast' + (type ? ' toast--' + type : '');
       el.textContent = msg;
       $('#toastStack').appendChild(el);
-      setTimeout(() => el.remove(), 3000);
+      setTimeout(() => el.remove(), 3500);
     }
+
+    // ===== Auth state =====
+    function setNavUser(user) {
+      const btn = $('#authBtn');
+      if (user) {
+        const label = user.email ? user.email.split('@')[0] : user.id.slice(0, 8);
+        btn.textContent = label;
+      } else {
+        btn.textContent = 'Connect';
+      }
+    }
+
+    sb.auth.getSession().then(({ data: { session } }) => {
+      setNavUser(session?.user ?? null);
+    });
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      setNavUser(session?.user ?? null);
+    });
 
     // ===== Render menu =====
     MENU.forEach(item => {
@@ -815,37 +840,37 @@
 
     let currentOrderId = '';
 
-    $('#confirmOrderBtn').onclick = () => {
-      const name = $('#custName').value.trim();
+    $('#confirmOrderBtn').onclick = async () => {
+      const name  = $('#custName').value.trim();
       const phone = $('#custPhone').value.trim();
       if (!name || !phone) { toast('Name and phone are required.', 'error'); return; }
 
-      const time = $('#pickupTime').value;
+      const time  = $('#pickupTime').value;
       const notes = $('#custNotes').value.trim();
       currentOrderId = 'SKO-' + Date.now().toString(36).toUpperCase();
 
-      const items = Object.values(cart)
-        .map(r => '- ' + r.name + ' x' + r.qty + ' \u2014 ' + money(r.price * r.qty))
-        .join('\n');
-      const total = $('#subtotal').textContent;
-      const summary = [
-        'Soulfull Kitchen Order',
-        'Order ID: ' + currentOrderId,
-        '',
-        'Name: ' + name,
-        'Phone: ' + phone,
-        'Pickup: ' + time,
-        'Notes: ' + (notes || '-'),
-        '',
-        'Items:',
-        items,
-        '',
-        'Subtotal: ' + total,
-        '',
-        '(Pay cash at pickup.)',
-      ].join('\n');
+      const cartItems = Object.values(cart);
+      const total     = $('#subtotal').textContent;
 
-      localStorage.setItem('sfk_last_order', summary);
+      // Save order to Supabase
+      const { data: { session } } = await sb.auth.getSession();
+      const { error: orderErr } = await sb.from('orders').insert({
+        order_id:       currentOrderId,
+        customer_name:  name,
+        customer_phone: phone,
+        pickup_time:    time,
+        notes:          notes || null,
+        items:          cartItems,
+        total:          total,
+        user_id:        session?.user?.id ?? null,
+      });
+      if (orderErr) {
+        toast('Could not save order — please try again.', 'error');
+        console.error(orderErr);
+        return;
+      }
+
+      // Clear cart
       Object.keys(cart).forEach(k => delete cart[k]);
       localStorage.removeItem(CART_KEY);
       renderCart();
@@ -854,52 +879,100 @@
       $('#confirmId').textContent = 'Order ' + currentOrderId;
       $('#confirmModal').classList.add('open');
 
-      const mailto = 'mailto:soulfullkitchen@proton.me'
+      // Also send email as backup
+      const itemLines = cartItems.map(r => '- ' + r.name + ' x' + r.qty + ' \u2014 ' + money(r.price * r.qty)).join('\n');
+      const summary = [
+        'Soulfull Kitchen Order', 'Order ID: ' + currentOrderId, '',
+        'Name: ' + name, 'Phone: ' + phone, 'Pickup: ' + time,
+        'Notes: ' + (notes || '-'), '', 'Items:', itemLines, '',
+        'Subtotal: ' + total, '', '(Pay cash at pickup.)',
+      ].join('\n');
+      window.location.href = 'mailto:soulfullkitchen@proton.me'
         + '?subject=' + encodeURIComponent('New Pickup Order \u2013 ' + currentOrderId)
-        + '&body=' + encodeURIComponent(summary);
-      window.location.href = mailto;
+        + '&body='    + encodeURIComponent(summary);
     };
 
     $('#confirmDoneBtn').onclick = () => $('#confirmModal').classList.remove('open');
 
-    // ===== Post-order chat =====
-    $('#openChatBtn').onclick = () => {
-      $('#confirmModal').classList.remove('open');
-      $('#chatOrderLabel').textContent = 'Order ' + currentOrderId;
-      const msgs = $('#chatMsgs');
-      msgs.innerHTML = '';
-      appendMsg('kitchen', 'Hey! We got your order ' + currentOrderId + '. We\u2019ll have it ready for you. Anything we should know?');
-      $('#chatModal').classList.add('open');
-    };
-    $('#chatClose').onclick = () => $('#chatModal').classList.remove('open');
+    // ===== Post-order chat (Supabase Realtime) =====
+    let chatChannel = null;
 
-    function appendMsg(side, text) {
+    function appendMsg(side, text, dateObj) {
       const msgs = $('#chatMsgs');
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = (dateObj || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      const wrap = document.createElement('div');
+      const wrap   = document.createElement('div');
       wrap.className = 'msg msg--' + side;
 
       const bubble = document.createElement('div');
       bubble.className = 'msg__bubble';
       bubble.textContent = text;
 
-      const time = document.createElement('div');
-      time.className = 'msg__time';
-      time.textContent = now;
+      const timeEl = document.createElement('div');
+      timeEl.className = 'msg__time';
+      timeEl.textContent = timeStr;
 
-      wrap.append(bubble, time);
+      wrap.append(bubble, timeEl);
       msgs.appendChild(wrap);
       msgs.scrollTop = msgs.scrollHeight;
     }
 
-    function sendChat() {
+    async function openOrderChat(orderId) {
+      $('#chatOrderLabel').textContent = 'Order ' + orderId;
+      $('#chatMsgs').innerHTML = '';
+      $('#chatModal').classList.add('open');
+
+      // Load existing messages for this order
+      const { data: existing } = await sb
+        .from('chat_messages')
+        .select('sender, message, created_at')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: true });
+
+      if (existing && existing.length > 0) {
+        existing.forEach(m => appendMsg(m.sender, m.message, new Date(m.created_at)));
+      } else {
+        // Insert kitchen welcome message
+        const welcome = 'Hey! We got your order ' + orderId + '. We\u2019ll have it ready for you. Anything we should know?';
+        await sb.from('chat_messages').insert({ order_id: orderId, sender: 'kitchen', message: welcome });
+      }
+
+      // Subscribe to new messages in real time
+      if (chatChannel) await chatChannel.unsubscribe();
+      chatChannel = sb
+        .channel('order-chat-' + orderId)
+        .on('postgres_changes', {
+          event:  'INSERT',
+          schema: 'public',
+          table:  'chat_messages',
+          filter: 'order_id=eq.' + orderId,
+        }, payload => {
+          appendMsg(payload.new.sender, payload.new.message, new Date(payload.new.created_at));
+        })
+        .subscribe();
+    }
+
+    $('#openChatBtn').onclick = () => {
+      $('#confirmModal').classList.remove('open');
+      openOrderChat(currentOrderId);
+    };
+
+    $('#chatClose').onclick = async () => {
+      $('#chatModal').classList.remove('open');
+      if (chatChannel) { await chatChannel.unsubscribe(); chatChannel = null; }
+    };
+
+    async function sendChat() {
       const input = $('#chatInput');
-      const text = input.value.trim();
+      const text  = input.value.trim();
       if (!text) return;
-      appendMsg('customer', text);
       input.value = '';
-      setTimeout(() => appendMsg('kitchen', 'Got it! We\u2019ll take care of that for you. See you soon!'), 1200);
+      const { error } = await sb.from('chat_messages').insert({
+        order_id: currentOrderId,
+        sender:   'customer',
+        message:  text,
+      });
+      if (error) toast('Message failed to send.', 'error');
     }
 
     $('#chatSendBtn').onclick = sendChat;
@@ -908,7 +981,7 @@
     // ===== Auth modal =====
     let authMode = null;
 
-    function openAuth() { $('#authModal').classList.add('open'); }
+    function openAuth()  { $('#authModal').classList.add('open'); }
     function closeAuth() { $('#authModal').classList.remove('open'); authMode = null; resetAuthUI(); }
 
     function resetAuthUI() {
@@ -918,9 +991,9 @@
       $('#emailInput').value = '';
     }
 
-    $('#authBtn').onclick = openAuth;
+    $('#authBtn').onclick        = openAuth;
     $('#stakeConnectBtn').onclick = openAuth;
-    $('#authCancel').onclick = closeAuth;
+    $('#authCancel').onclick     = closeAuth;
 
     $('#walletOpt').onclick = () => {
       authMode = 'wallet';
@@ -936,20 +1009,33 @@
       setTimeout(() => $('#emailInput').focus(), 50);
     };
 
-    $('#authConfirm').onclick = () => {
+    $('#authConfirm').onclick = async () => {
       if (!authMode) { toast('Pick a sign-in method.', 'error'); return; }
+
       if (authMode === 'wallet') {
-        // Placeholder — wire to Wagmi / Abstract Global Wallet
         toast('Wallet connect coming soon!');
         closeAuth();
-      } else {
-        const email = $('#emailInput').value.trim();
-        if (!email || !email.includes('@')) { toast('Enter a valid email address.', 'error'); return; }
-        // Placeholder — wire to magic link provider (Resend, Supabase, etc.)
-        toast('Magic link sent to ' + email + '!', 'success');
-        $('#authBtn').textContent = email.split('@')[0];
-        closeAuth();
+        return;
       }
+
+      const email = $('#emailInput').value.trim();
+      if (!email || !email.includes('@')) { toast('Enter a valid email address.', 'error'); return; }
+
+      $('#authConfirm').textContent = 'Sending\u2026';
+      $('#authConfirm').disabled = true;
+
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+
+      $('#authConfirm').textContent = 'Continue';
+      $('#authConfirm').disabled = false;
+
+      if (error) {
+        toast('Error: ' + error.message, 'error');
+        return;
+      }
+
+      toast('Magic link sent to ' + email + '! Check your inbox.', 'success');
+      closeAuth();
     };
 
     // ===== Footer year =====
